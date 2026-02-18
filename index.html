@@ -6,6 +6,7 @@
 <title>DiamondTrace — KPCS Traceability Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Bebas+Neue&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root {
   --obsidian:#0a0a0f; --surface:#141420; --card:#1a1a2e;
@@ -473,6 +474,7 @@ function showPage(id) {
 
 function showHome() {
   if(qrScanner){ qrScanner.stop().catch(()=>{}); qrScanner=null; }
+  history.pushState(null, '', window.location.pathname + window.location.search);
   showPage('home-page');
 }
 function showScan() {
@@ -493,15 +495,48 @@ function hdrSearch() {
   if(v) loadDiamond(v);
 }
 
+// Resolve any form of ID: bare key, URL with hash, partial match
+function resolveId(raw) {
+  if(!raw) return null;
+  raw = raw.trim();
+  // If a full URL was scanned (e.g. https://...#KP-IND-2026-SRT-0042A), extract hash
+  const hashMatch = raw.match(/#(.+)$/);
+  if(hashMatch) raw = decodeURIComponent(hashMatch[1]);
+  const up = raw.toUpperCase();
+  return DB[raw]
+    || DB[up]
+    || DB[Object.keys(DB).find(k => k.toUpperCase() === up)]
+    || DB[Object.keys(DB).find(k => k.toUpperCase().includes(up))];
+}
+
 function loadDiamond(id) {
   if(qrScanner){ qrScanner.stop().catch(()=>{}); qrScanner=null; }
+  const d = resolveId(id);
+  // Push hash so the URL becomes a direct deep-link to this diamond
+  const hashId = d ? d.id : encodeURIComponent(id);
+  history.pushState(null, '', '#' + hashId);
   showPage('loading-page');
   setTimeout(() => {
-    const d = DB[id] || DB[Object.keys(DB).find(k => k.includes(id.toUpperCase()))];
     if(d) renderDetails(d);
     else renderNotFound(id);
-  }, 1500);
+  }, 1200);
 }
+
+// ── HASH ROUTING: read URL on load + back/forward navigation ─────────────────
+function routeFromHash() {
+  const hash = decodeURIComponent(window.location.hash.slice(1));
+  if(hash) {
+    const d = resolveId(hash);
+    showPage('loading-page');
+    setTimeout(() => {
+      if(d) renderDetails(d);
+      else renderNotFound(hash);
+    }, 900);
+  } else {
+    showPage('home-page');
+  }
+}
+window.addEventListener('popstate', routeFromHash);
 
 // ── SCANNER ────────────────────────────────────────────────────────────────
 function initScanner() {
@@ -782,32 +817,25 @@ function renderNotFound(id) {
   showPage('details-page');
 }
 
-function drawQR(text) {
+function drawQR(diamondId) {
   const el = document.getElementById('consumer-qr');
   if(!el) return;
-  const canvas = document.createElement('canvas');
-  canvas.width = 130; canvas.height = 130;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,130,130);
-  ctx.fillStyle = '#000';
-  const sq = (x,y,s,inner) => {
-    ctx.fillRect(x,y,s,s);
-    ctx.fillStyle='#fff'; ctx.fillRect(x+2,y+2,s-4,s-4);
-    ctx.fillStyle='#000'; if(inner) ctx.fillRect(x+4,y+4,s-8,s-8);
-  };
-  sq(4,4,28,true); sq(98,4,28,true); sq(4,98,28,true);
-  let h=0; for(let i=0;i<text.length;i++) h=(h*31+text.charCodeAt(i))&0xffffffff;
-  for(let r=0;r<22;r++) for(let c=0;c<22;c++){
-    const px=c*5+8, py=r*5+8;
-    if((c<7&&r<7)||(c>14&&r<7)||(c<7&&r>14)) continue;
-    if(((h^(r*37+c*17))>>0)&1) ctx.fillRect(px,py,4,4);
-  }
-  ctx.fillStyle='#c9a84c'; ctx.font='bold 14px serif'; ctx.textAlign='center';
-  ctx.fillText('◆',65,70);
-  el.appendChild(canvas);
+  el.innerHTML = ''; // clear previous
+  // Build a deep-link URL: current page URL + #DIAMOND_ID
+  // On diamondtrace.github.io this becomes a real scannable deep-link
+  const base = window.location.href.split('#')[0];
+  const url = base + '#' + encodeURIComponent(diamondId);
+  new QRCode(el, {
+    text: url,
+    width: 130,
+    height: 130,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 }
 
-showHome();
+routeFromHash();
 </script>
 </body>
 </html>
