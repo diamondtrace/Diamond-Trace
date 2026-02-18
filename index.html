@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiamondTrace — GeoMark Traceability Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --obsidian:#0a0a0f; --surface:#141420; --card:#1a1a2e;
+  --border:#2a2a45; --gold:#c9a84c; --gold-light:#e8c97a;
+  --gold-dim:#8a6d2a; --ice:#a8d8f0; --ice-dim:#4a8ab0;
+  --text:#e8e4dc; --muted:#7a7890; --green:#2ed573; --purple:#a29bfe;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--obsidian);color:var(--text);font-family:"DM Mono",monospace;min-height:100vh;}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 700px 500px at 15% 15%,rgba(106,79,212,.07) 0%,transparent 70%),radial-gradient(ellipse 500px 700px at 85% 85%,rgba(201,168,76,.05) 0%,transparent 70%);pointer-events:none;z-index:0;}
+body::after{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(201,168,76,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;border-bottom:1px solid var(--border);background:rgba(10,10,15,.88);backdrop-filter:blur(24px);}
+.header-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.logo{display:flex;align-items:center;gap:14px;cursor:pointer;text-decoration:none;}
+.logo-kp{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1px solid var(--gold-dim);}
+.logo-kp img{width:100%;height:100%;object-fit:cover;}
+.logo-texts{}
+.logo-text{font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:3px;color:var(--gold);line-height:1;}
+.logo-sub{font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.header-badge{font-size:9px;letter-spacing:2px;color:var(--ice-dim);border:1px solid var(--border);padding:6px 14px;border-radius:20px;white-space:nowrap;}
+.hdr-search{display:flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .3s;}
+.hdr-search.show{opacity:1;pointer-events:all;}
+.hdr-search input{background:var(--surface);border:none;color:var(--text);font-family:"DM Mono",monospace;font-size:12px;padding:8px 14px;outline:none;width:220px;letter-spacing:1px;}
+.hdr-search input::placeholder{color:var(--muted);}
+.hdr-search button{background:var(--gold);border:none;color:var(--obsidian);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:1px;padding:8px 16px;cursor:pointer;font-weight:700;transition:background .2s;}
+.hdr-search button:hover{background:var(--gold-light);}
+
+/* PAGES */
+.page{display:none;position:relative;z-index:1;}
+.page.active{display:block;}
+#loading-page{display:none;align-items:center;justify-content:center;flex-direction:column;min-height:60vh;}
+#loading-page.active{display:flex;}
+
+/* HOME */
+.home-wrap{max-width:780px;margin:0 auto;padding:80px 28px 80px;text-align:center;}
+.eyebrow{font-size:10px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:14px;}
+.eyebrow::before,.eyebrow::after{content:"";width:40px;height:1px;background:var(--gold-dim);}
+.home-wrap h1{font-family:"Cormorant Garamond",serif;font-size:clamp(44px,7vw,76px);font-weight:300;line-height:1.05;letter-spacing:-1px;margin-bottom:20px;}
+.home-wrap h1 em{font-style:italic;color:var(--gold);}
+.home-sub{font-size:13px;color:var(--muted);letter-spacing:.5px;max-width:460px;margin:0 auto 52px;line-height:2;}
+
+/* Search card */
+.search-card{border:1px solid var(--border);background:var(--surface);padding:36px;text-align:left;position:relative;margin-bottom:16px;}
+.search-card::before{content:"◆";position:absolute;top:-8px;left:24px;background:var(--surface);padding:0 8px;color:var(--gold-dim);font-size:10px;}
+.sc-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;}
+.big-row{display:flex;border:1px solid var(--border);overflow:hidden;}
+.big-row input{flex:1;background:var(--obsidian);border:none;color:var(--text);font-family:"DM Mono",monospace;font-size:15px;padding:20px 22px;outline:none;letter-spacing:1px;}
+.big-row input::placeholder{color:#333350;}
+.big-row button{background:var(--gold);border:none;color:var(--obsidian);font-family:"DM Mono",monospace;font-size:11px;letter-spacing:2px;padding:20px 30px;cursor:pointer;font-weight:700;text-transform:uppercase;transition:background .2s;white-space:nowrap;}
+.big-row button:hover{background:var(--gold-light);}
+.or-sep{text-align:center;font-size:10px;color:var(--muted);letter-spacing:3px;margin:18px 0;position:relative;}
+.or-sep::before,.or-sep::after{content:"";position:absolute;top:50%;width:44%;height:1px;background:var(--border);}
+.or-sep::before{left:0;}.or-sep::after{right:0;}
+.scan-big{width:100%;padding:17px;background:transparent;border:1px solid var(--border);color:var(--text);font-family:"DM Mono",monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.scan-big:hover{border-color:var(--gold-dim);color:var(--gold);}
+.scan-big svg{width:16px;height:16px;}
+.demo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center;}
+.demo-lbl{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.chip{font-size:10px;color:var(--ice-dim);border:1px solid var(--border);padding:6px 12px;cursor:pointer;transition:all .2s;}
+.chip:hover{border-color:var(--ice-dim);color:var(--ice);}
+
+/* How-it-works */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:44px;}
+.how-card{background:var(--surface);border:1px solid var(--border);padding:28px 22px;text-align:left;}
+.how-num{font-family:"Bebas Neue",sans-serif;font-size:44px;color:var(--border);line-height:1;margin-bottom:12px;}
+.how-title{font-size:12px;letter-spacing:1px;color:var(--text);margin-bottom:8px;}
+.how-desc{font-size:11px;color:var(--muted);line-height:1.7;}
+@media(max-width:640px){.how-grid{grid-template-columns:1fr;}}
+
+/* SCAN PAGE */
+.scan-wrap{max-width:560px;margin:0 auto;padding:48px 28px;}
+.page-back{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;background:none;border:1px solid var(--border);padding:9px 18px;cursor:pointer;transition:all .2s;margin-bottom:36px;}
+.page-back:hover{color:var(--text);border-color:var(--muted);}
+.scan-lbl{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;}
+#qr-reader{border:1px solid var(--border) !important;overflow:hidden;background:var(--surface);}
+#qr-reader img{display:none !important;}
+.scan-manual{display:flex;border:1px solid var(--border);overflow:hidden;margin-top:16px;}
+.scan-manual input{flex:1;background:var(--surface);border:none;color:var(--text);font-family:"DM Mono",monospace;font-size:13px;padding:14px 18px;outline:none;}
+.scan-manual input::placeholder{color:var(--muted);}
+.scan-manual button{background:var(--gold);border:none;color:var(--obsidian);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:2px;padding:14px 22px;cursor:pointer;font-weight:700;text-transform:uppercase;transition:background .2s;}
+.scan-manual button:hover{background:var(--gold-light);}
+
+/* LOADING */
+.loading-gem{font-size:50px;animation:spin 1.8s linear infinite;display:inline-block;color:var(--gold);margin-bottom:20px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.loading-sub{font-size:10px;color:var(--border);letter-spacing:2px;margin-top:8px;}
+
+/* ── DETAILS PAGE ── */
+#details-page{animation:fadeIn .4s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+.details-wrap{max-width:1100px;margin:0 auto;padding:36px 28px 80px;}
+
+/* Sticky tab nav */
+.tab-nav{
+  position:sticky;top:68px;z-index:100;
+  background:rgba(10,10,15,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;gap:0;overflow-x:auto;
+  scrollbar-width:none;
+}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{
+  padding:16px 22px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;transition:all .2s;white-space:nowrap;font-family:"DM Mono",monospace;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* Passport header */
+.passport-bar{
+  background:linear-gradient(135deg,var(--surface),#0d0d1a);
+  border:1px solid var(--border);padding:36px;margin-bottom:2px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;
+}
+.passport-id{font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:8px;}
+.passport-name{font-family:"Cormorant Garamond",serif;font-size:clamp(30px,5vw,52px);font-weight:300;line-height:1;margin-bottom:6px;}
+.passport-origin{font-size:12px;color:var(--muted);letter-spacing:1px;}
+.passport-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0;}
+.status-badge{padding:10px 20px;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;border-radius:2px;}
+.sb-verified{background:rgba(46,213,115,.1);color:#2ed573;border:1px solid rgba(46,213,115,.3);}
+.sb-pending{background:rgba(255,165,0,.1);color:#ffa502;border:1px solid rgba(255,165,0,.3);}
+.sb-flagged{background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.3);}
+.tier-badge{font-size:9px;letter-spacing:2px;padding:7px 16px;border-radius:2px;}
+.tb-gold{border:1px solid var(--gold-dim);color:var(--gold);}
+.tb-platinum{border:1px solid var(--ice-dim);color:var(--ice);}
+.tb-silver{border:1px solid #888;color:#aaa;}
+
+/* Section containers */
+.section{margin-bottom:40px;}
+.section-head{
+  font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:300;
+  margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;color:var(--text);
+}
+.section-head .sh-icon{width:20px;height:20px;color:var(--gold-dim);}
+
+/* Info grid */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px;}
+.i-card{background:var(--surface);border:1px solid var(--border);padding:22px;}
+.i-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.i-val{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:400;line-height:1.1;}
+.i-sub{font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.5px;}
+.i-card.hi{border-color:var(--gold-dim);}
+.i-card.hi .i-val{color:var(--gold);}
+
+/* GeoMark ID */
+.cert-box{border:1px solid var(--gold-dim);padding:32px;background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);position:relative;margin-bottom:2px;}
+.cert-box::before{content:"◆ KIMBERLEY PROCESS CERTIFICATE";position:absolute;top:-8px;left:24px;background:var(--obsidian);padding:0 10px;color:var(--gold-dim);font-size:9px;letter-spacing:3px;}
+.cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:24px;}
+.cf-label{font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
+.cf-val{font-size:14px;color:var(--text);letter-spacing:.5px;}
+.cert-num{font-family:"Cormorant Garamond",serif;font-size:28px;color:var(--gold);letter-spacing:2px;}
+
+/* ESG */
+.esg-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.esg-lbl{font-size:10px;letter-spacing:1px;width:130px;color:var(--muted);}
+.esg-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.esg-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.esg-e{background:linear-gradient(90deg,#1a9e4a,#2ed573);}
+.esg-s{background:linear-gradient(90deg,#4460cc,var(--purple));}
+.esg-g{background:linear-gradient(90deg,var(--gold-dim),var(--gold));}
+.esg-score{font-size:12px;color:var(--text);width:44px;text-align:right;}
+
+/* Chain of custody */
+.chain{}
+.chain-node{display:grid;grid-template-columns:130px 36px 1fr;position:relative;}
+.chain-time{font-size:10px;color:var(--muted);letter-spacing:.5px;padding:26px 14px 26px 0;text-align:right;line-height:1.5;border-right:1px solid var(--border);}
+.chain-mid{display:flex;flex-direction:column;align-items:center;}
+.chain-dot{width:14px;height:14px;border-radius:50%;margin-top:28px;flex-shrink:0;z-index:2;position:relative;}
+.d-mine{background:#2ed573;box-shadow:0 0 10px rgba(46,213,115,.4);}
+.d-export{background:var(--gold);box-shadow:0 0 10px rgba(201,168,76,.4);}
+.d-hub{background:#ff6b6b;box-shadow:0 0 10px rgba(255,107,107,.4);}
+.d-import{background:var(--ice);box-shadow:0 0 10px rgba(168,216,240,.4);}
+.d-polish{background:var(--purple);box-shadow:0 0 10px rgba(162,155,254,.4);}
+.d-retail{background:#ffd700;box-shadow:0 0 10px rgba(255,215,0,.4);}
+.chain-vline{flex:1;width:1px;background:var(--border);min-height:16px;}
+.chain-body{padding:20px 0 20px 24px;}
+.c-stage{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.c-event{font-family:"Cormorant Garamond",serif;font-size:21px;margin-bottom:10px;}
+.c-tags{display:flex;gap:8px;flex-wrap:wrap;}
+.c-tag{font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:4px 10px;}
+.c-tag span{color:var(--text);}
+.c-verified{display:inline-flex;align-items:center;gap:6px;font-size:9px;letter-spacing:2px;color:#2ed573;text-transform:uppercase;margin-top:9px;}
+.c-verified::before{content:"✓";}
+.c-hash{font-size:9px;color:var(--border);margin-top:6px;letter-spacing:.5px;word-break:break-all;}
+.c-hash:hover{color:var(--muted);}
+
+/* Child batches */
+.children-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:18px;}
+.child-card{border:1px solid var(--border);padding:18px;background:var(--surface);cursor:pointer;transition:all .2s;}
+.child-card:hover{border-color:var(--gold-dim);}
+.child-id{font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;}
+.child-wt{font-family:"Cormorant Garamond",serif;font-size:26px;}
+.child-meta{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* Consumer QR */
+.qr-section{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;}
+.qr-frame{width:150px;height:150px;background:white;padding:10px;flex-shrink:0;border:1px solid var(--gold-dim);}
+.qr-frame canvas{width:130px !important;height:130px !important;}
+.qr-info h3{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:300;margin-bottom:10px;}
+.qr-info p{font-size:12px;color:var(--muted);line-height:1.9;}
+.qr-meta{font-size:10px;color:var(--muted);margin-top:16px;letter-spacing:1px;line-height:2;}
+
+/* Not found */
+.not-found{text-align:center;padding:80px 20px;}
+.nf-icon{font-size:44px;color:var(--border);margin-bottom:20px;}
+.nf-title{font-family:"Cormorant Garamond",serif;font-size:32px;font-weight:300;margin-bottom:12px;}
+.nf-id{font-size:14px;color:var(--gold);letter-spacing:2px;margin-bottom:14px;}
+.nf-desc{font-size:12px;color:var(--muted);max-width:420px;margin:0 auto;line-height:1.9;}
+
+/* Chain anim */
+.chain-node{opacity:0;transform:translateX(-16px);transition:all .45s ease;}
+.chain-node.vis{opacity:1;transform:translateX(0);}
+
+/* QR overrides */
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-camera-start{
+  background:var(--gold) !important;color:var(--obsidian) !important;
+  border:none !important;font-family:"DM Mono",monospace !important;
+  font-size:11px !important;letter-spacing:2px !important;
+  padding:10px 20px !important;cursor:pointer !important;
+  text-transform:uppercase !important;font-weight:700 !important;
+}
+#html5-qrcode-select-camera{
+  background:var(--surface) !important;color:var(--text) !important;
+  border:1px solid var(--border) !important;font-family:"DM Mono",monospace !important;
+  padding:8px !important;
+}
+#html5-qrcode-anchor-scan-type-change{color:var(--gold) !important;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--obsidian);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+footer{border-top:1px solid var(--border);padding:28px 0;text-align:center;font-size:10px;color:var(--muted);letter-spacing:2px;position:relative;z-index:1;}
+footer img{width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:8px;opacity:.7;}
+footer span{color:var(--gold-dim);}
+
+@media(max-width:640px){
+  .how-grid{grid-template-columns:1fr;}
+  .chain-node{grid-template-columns:80px 30px 1fr;}
+  .chain-time{font-size:9px;padding:26px 8px 26px 0;}
+  .passport-name{font-size:28px;}
+  .hdr-search{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <a class="logo" onclick="showHome()" style="text-decoration:none;">
+      <div class="logo-kp"><img src="data:image/png;base64,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" alt="KP Logo"></div>
+      <div class="logo-texts">
+        <div class="logo-text">DiamondTrace</div>
+        <div class="logo-sub">GeoMark · DiamondNet · 2026</div>
+      </div>
+    </a>
+    <div class="header-right">
+      <div class="hdr-search" id="hdr-search">
+        <input type="text" id="hdr-input" placeholder="Enter GeoMark ID..." onkeydown="if(event.key==='Enter')hdrSearch()">
+        <button onclick="hdrSearch()">Search</button>
+      </div>
+      <div class="header-badge">GM CHAIR · INDIA 2026</div>
+    </div>
+  </div>
+</header>
+
+<!-- HOME PAGE -->
+<div class="page active" id="home-page">
+  <div class="home-wrap">
+    <div class="eyebrow">Kimberley Process Certification Scheme</div>
+    <h1>Every Diamond<br>Has a <em>Story</em></h1>
+    <p class="home-sub">Enter a GeoMark ID or scan a QR code to instantly view the complete DiamondNet chain of custody — from mine to market.</p>
+
+    <div class="search-card">
+      <div class="sc-label">Enter GeoMark ID</div>
+      <div class="big-row">
+        <input type="text" id="home-input" placeholder="e.g. GM-IND-2026-SRT-0042A" onkeydown="if(event.key==='Enter')homeSearch()">
+        <button onclick="homeSearch()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Lookup Diamond
+        </button>
+      </div>
+      <div class="or-sep">or</div>
+      <button class="scan-big" onclick="showScan()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+          <rect x="3" y="16" width="5" height="5"/>
+          <path d="M16 16h5v5M16 16v5M21 16v5"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="16"/>
+        </svg>
+        Scan QR Code
+      </button>
+      <div class="demo-row">
+        <span class="demo-lbl">Try demo →</span>
+        <span class="chip" onclick="loadDiamond('GM-IND-2026-SRT-0042A')">SRT-0042A · Surat Parcel</span>
+        <span class="chip" onclick="loadDiamond('GM-BOT-2026-GBR-0017')">GBR-0017 · Gemsbok Parcel</span>
+        <span class="chip" onclick="loadDiamond('GM-NAM-2025-MUM-0099')">MUM-0099 · Namibian Shore</span>
+      </div>
+    </div>
+
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">01</div>
+        <div class="how-title">Scan or Enter ID</div>
+        <div class="how-desc">Scan the QR code on a sealed batch or type the GeoMark ID printed on the certificate.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02</div>
+        <div class="how-title">DiamondNet Lookup</div>
+        <div class="how-desc">The ID is verified against the DiamondNet blockchain registry — an immutable ledger of all certified shipments.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03</div>
+        <div class="how-title">Full Provenance</div>
+        <div class="how-desc">View every step from extraction to polishing — mine source, GeoMark certificate, ESG scores, and chain of custody.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCAN PAGE -->
+<div class="page" id="scan-page">
+  <div class="scan-wrap">
+    <button class="page-back" onclick="showHome()">← Back</button>
+    <div class="scan-lbl">Position QR code within the frame</div>
+    <div id="qr-reader"></div>
+    <div class="scan-manual">
+      <input type="text" id="scan-input" placeholder="Or type GeoMark ID manually..." onkeydown="if(event.key==='Enter')scanManual()">
+      <button onclick="scanManual()">Go</button>
+    </div>
+    <div class="demo-row" style="margin-top:16px;">
+      <span class="demo-lbl">Demo →</span>
+      <span class="chip" onclick="loadDiamond('GM-IND-2026-SRT-0042A')">SRT-0042A</span>
+      <span class="chip" onclick="loadDiamond('GM-BOT-2026-GBR-0017')">GBR-0017</span>
+      <span class="chip" onclick="loadDiamond('GM-NAM-2025-MUM-0099')">MUM-0099</span>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING PAGE -->
+<div class="page" id="loading-page">
+  <div class="loading-gem">◆</div>
+  <div class="loading-text">Querying DiamondNet Registry</div>
+  <div class="loading-sub">Verifying on blockchain...</div>
+</div>
+
+<!-- DETAILS PAGE -->
+<div class="page" id="details-page">
+  <!-- Tab nav -->
+  <div class="tab-nav" id="tab-nav">
+    <button class="tab-btn active" onclick="scrollToSection('sec-overview',this)">Overview</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-specs',this)">Stone Specs</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-cert',this)">GeoMark Certificate</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-esg',this)">ESG Scores</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-chain',this)">Chain of Custody</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-batches',this)">Output Batches</button>
+    <button class="tab-btn" onclick="scrollToSection('sec-verify',this)">Verify / QR</button>
+  </div>
+  <div class="details-wrap" id="details-content"></div>
+</div>
+
+<footer>
+  <img src="data:image/png;base64,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" alt="KP">
+  <span>DiamondTrace</span> · GeoMark 2026 · India Chairpersonship · Powered by DiamondNet Blockchain
+</footer>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const DB = {
+  'GM-IND-2026-SRT-0042A': {
+    id:'GM-IND-2026-SRT-0042A', name:'Surat Parcel 42-A',
+    origin:'Jwaneng Mine, Botswana', type:'Round Brilliant',
+    roughWeight:'18.40 ct', polishedWeight:'10.82 ct', yield:'58.8%',
+    color:'F', clarity:'VS1', cut:'Excellent', fluorescence:'None',
+    shape:'Round Brilliant', dimensions:'6.48 × 6.51 × 4.02 mm',
+    polish:'Excellent', symmetry:'Very Good',
+    status:'verified', geoMarkId:'KPCS/BOT/2025/44821',
+    mineLicense:'BOT-DM-JW-0088', mineCountry:'Botswana',
+    exportDate:'14 Nov 2025', importDate:'02 Dec 2025', polishDate:'22 Jan 2026',
+    estimatedValue:'₹24,60,000', gradingLab:'IGI Mumbai', labCert:'IGI-2026-0044821',
+    esg:{e:78,s:82,g:91}, tier:'GM-Gold',
+    children:[
+      {id:'POL-0042A-1', weight:'6.14 ct', shape:'Round Brilliant', status:'In Transit'},
+      {id:'POL-0042A-2', weight:'2.88 ct', shape:'Princess Cut', status:'At Retailer'},
+      {id:'POL-0042A-3', weight:'1.80 ct', shape:'Emerald Cut', status:'Available'},
+    ],
+    chain:[
+      {stage:'Mine',event:'Extracted from kimberlite pipe',location:'Jwaneng Mine, Botswana',entity:'Debswana Diamond Company',date:'03 Oct 2025',time:'08:14 UTC',type:'mine',hash:'0x4a7f3c8d...9b2e1d3f',details:[{k:'Lot No.',v:'JW-2025-LOT-0392'},{k:'Shift',v:'Morning A'},{k:'Depth',v:'487m'},{k:'Pipe',v:'AK1 Kimberlite'}]},
+      {stage:'Export',event:'GeoMark ID issued & batch sealed',location:'Gaborone Export Hub, Botswana',entity:'Botswana Customs & Minerals',date:'14 Nov 2025',time:'11:32 UTC',type:'export',hash:'0x8b1c2a7e...3f4d5e9c',details:[{k:'Certificate',v:'KPCS/BOT/2025/44821'},{k:'Seal No.',v:'BOT-SEA-29847'},{k:'Inspector',v:'Officer G. Modise'},{k:'Weight Verified',v:'18.40 ct ✓'}]},
+      {stage:'Transit Hub',event:'Scanned & verified — no mixing detected',location:'DMCC, Dubai, UAE',entity:'Dubai Multi Commodities Centre',date:'22 Nov 2025',time:'14:05 UTC',type:'hub',hash:'0xd3e9f1a2...7c8b2a4d',details:[{k:'Seal Intact',v:'✓ Confirmed'},{k:'Scan ID',v:'DMCC-20251122-0091'},{k:'Transit Time',v:'8 days'},{k:'Risk Score',v:'Low'}]},
+      {stage:'Import',event:'Cleared Indian Customs, Surat SEZ',location:'Surat Diamond Bourse, India',entity:'GJEPC / India Customs',date:'02 Dec 2025',time:'09:47 UTC',type:'import',hash:'0x1f2e3d4c...4c5b6a7b',details:[{k:'Bill of Entry',v:'SRT-BE-2025-88761'},{k:'Duty Paid',v:'₹0 (SEZ)'},{k:'GM Verified',v:'✓ GJEPC Registry'},{k:'DiamondNet Block',v:'#1,204,871'}]},
+      {stage:'Processing',event:'Sorted, planned & polished',location:'Hari Krishna Exports, Surat',entity:'HKE Processing Unit 4',date:'22 Jan 2026',time:'16:20 UTC',type:'polish',hash:'0x9a8b7c6d...6d5e4f3a',details:[{k:'Rough In',v:'18.40 ct'},{k:'Polished Out',v:'10.82 ct'},{k:'Yield',v:'58.8%'},{k:'Technician ID',v:'HKE-T-0219'}]},
+      {stage:'Trade',event:'Listed on India Diamond Exchange',location:'Surat Diamond Bourse, India',entity:'SDB Digital Platform',date:'01 Feb 2026',time:'10:00 UTC',type:'retail',hash:'0x3c4d5e6f...1a2b3c4d',details:[{k:'Listing ID',v:'SDB-2026-44A-EX'},{k:'Graded by',v:'IGI Mumbai'},{k:'Cert No.',v:'IGI-2026-0044821'},{k:'Grade Report',v:'Available'}]},
+    ]
+  },
+  'GM-BOT-2026-GBR-0017':{
+    id:'GM-BOT-2026-GBR-0017', name:'Gemsbok Parcel 17',
+    origin:'Orapa Mine, Botswana', type:'Oval Mixed Cut',
+    roughWeight:'9.80 ct', polishedWeight:'5.12 ct', yield:'52.2%',
+    color:'D', clarity:'IF', cut:'Very Good', fluorescence:'Faint',
+    shape:'Oval Brilliant', dimensions:'11.2 × 7.8 × 4.9 mm',
+    polish:'Very Good', symmetry:'Good',
+    status:'verified', geoMarkId:'KPCS/BOT/2025/51093',
+    mineLicense:'BOT-DM-OR-0044', mineCountry:'Botswana',
+    exportDate:'20 Jan 2026', importDate:'05 Feb 2026', polishDate:'14 Feb 2026',
+    estimatedValue:'₹38,40,000', gradingLab:'GIA Mumbai', labCert:'GIA-2026-0051093',
+    esg:{e:85,s:76,g:88}, tier:'GM-Platinum',
+    children:[
+      {id:'POL-0017-1', weight:'3.44 ct', shape:'Oval', status:'At GIA Lab'},
+      {id:'POL-0017-2', weight:'1.68 ct', shape:'Round', status:'Available'},
+    ],
+    chain:[
+      {stage:'Mine',event:'Extracted, open-pit kimberlite',location:'Orapa Mine, Botswana',entity:'Debswana Mining Co.',date:'18 Dec 2025',time:'06:40 UTC',type:'mine',hash:'0x2b3c4d5e...8e9f0a1b',details:[{k:'Lot No.',v:'OR-2025-LOT-0114'},{k:'Method',v:'Open pit'},{k:'Grade',v:'89 cpht'}]},
+      {stage:'Export',event:'GeoMark ID issued',location:'Gaborone, Botswana',entity:'Botswana Minerals Board',date:'20 Jan 2026',time:'13:00 UTC',type:'export',hash:'0x5f6a7b8c...c1d2e3f4',details:[{k:'Certificate',v:'KPCS/BOT/2025/51093'},{k:'Seal',v:'BOT-SEA-31002'}]},
+      {stage:'Import',event:'Arrived Mumbai BKC Diamond Hub',location:'Bandra Kurla Complex, Mumbai',entity:'GJEPC India',date:'05 Feb 2026',time:'11:15 UTC',type:'import',hash:'0x7d8e9f0a...2a3b4c5d',details:[{k:'Customs Ref',v:'MUM-BE-2026-11223'},{k:'KP Cleared',v:'✓ Yes'}]},
+      {stage:'Processing',event:'Polished at certified facility',location:'Bhavnagar Diamond Co., Surat',entity:'BDC Unit 2',date:'14 Feb 2026',time:'15:30 UTC',type:'polish',hash:'0x9b0c1d2e...4e5f6a7b',details:[{k:'Rough In',v:'9.80 ct'},{k:'Out',v:'5.12 ct'},{k:'Yield',v:'52.2%'}]},
+    ]
+  },
+  'GM-NAM-2025-MUM-0099':{
+    id:'GM-NAM-2025-MUM-0099', name:'Namibian Shore 99',
+    origin:'Oranjemund Alluvial Field, Namibia', type:'Pear Brilliant',
+    roughWeight:'22.10 ct', polishedWeight:'13.60 ct', yield:'61.5%',
+    color:'E', clarity:'VVS2', cut:'Excellent', fluorescence:'None',
+    shape:'Pear Brilliant', dimensions:'16.4 × 9.8 × 6.1 mm',
+    polish:'Excellent', symmetry:'Excellent',
+    status:'pending', geoMarkId:'KPCS/NAM/2025/78234',
+    mineLicense:'NAM-MM-OJ-0033', mineCountry:'Namibia',
+    exportDate:'08 Dec 2025', importDate:'28 Dec 2025', polishDate:'Pending allocation',
+    estimatedValue:'₹52,10,000', gradingLab:'Pending', labCert:'Pending',
+    esg:{e:91,s:88,g:79}, tier:'GM-Silver',
+    children:[],
+    chain:[
+      {stage:'Mine',event:'Marine alluvial extraction, Atlantic seabed',location:'Oranjemund, Namibia',entity:'Namdeb Diamond Corp.',date:'01 Nov 2025',time:'07:00 UTC',type:'mine',hash:'0xf1e2d3c4...c4b5a697',details:[{k:'Method',v:'Marine dredging'},{k:'Lot',v:'NDB-2025-0334'},{k:'Vessel',v:'MV Debmarine 1'}]},
+      {stage:'Export',event:'Certified & exported via Walvis Bay',location:'Walvis Bay Port, Namibia',entity:'Namibian Customs Authority',date:'08 Dec 2025',time:'10:22 UTC',type:'export',hash:'0xa6b7c8d9...d9e0f1a2',details:[{k:'GeoMark ID',v:'KPCS/NAM/2025/78234'},{k:'Seal',v:'NAM-SEA-14823'}]},
+      {stage:'Transit Hub',event:'Verified at Hong Kong sorting facility',location:'Hong Kong Diamond Exchange',entity:'HKDE Authority',date:'18 Dec 2025',time:'08:30 UTC',type:'hub',hash:'0x3e4f5a6b...6b7c8d9e',details:[{k:'Seal',v:'✓ Intact'},{k:'Risk Score',v:'Low'}]},
+      {stage:'Import',event:'Cleared Mumbai customs — pending polisher',location:'Mumbai Port Trust, India',entity:'India Customs / GJEPC',date:'28 Dec 2025',time:'14:10 UTC',type:'import',hash:'0x9e0f1a2b...2b3c4d5e',details:[{k:'Status',v:'⏳ Awaiting allocation'},{k:'DiamondNet',v:'Block #1,198,022'}]},
+    ]
+  }
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let qrScanner = null;
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  const showSearch = id === 'details-page';
+  document.getElementById('hdr-search').classList.toggle('show', showSearch);
+}
+
+function showHome() {
+  if(qrScanner){ qrScanner.stop().catch(()=>{}); qrScanner=null; }
+  history.pushState(null, '', window.location.pathname + window.location.search);
+  showPage('home-page');
+}
+function showScan() {
+  showPage('scan-page');
+  initScanner();
+}
+
+function homeSearch() {
+  const v = document.getElementById('home-input').value.trim();
+  if(v) loadDiamond(v);
+}
+function scanManual() {
+  const v = document.getElementById('scan-input').value.trim();
+  if(v) loadDiamond(v);
+}
+function hdrSearch() {
+  const v = document.getElementById('hdr-input').value.trim();
+  if(v) loadDiamond(v);
+}
+
+// Resolve any form of ID: bare key, URL with hash, partial match
+function resolveId(raw) {
+  if(!raw) return null;
+  raw = raw.trim();
+  // If a full URL was scanned (e.g. https://...#GM-IND-2026-SRT-0042A), extract hash
+  const hashMatch = raw.match(/#(.+)$/);
+  if(hashMatch) raw = decodeURIComponent(hashMatch[1]);
+  const up = raw.toUpperCase();
+  return DB[raw]
+    || DB[up]
+    || DB[Object.keys(DB).find(k => k.toUpperCase() === up)]
+    || DB[Object.keys(DB).find(k => k.toUpperCase().includes(up))];
+}
+
+function loadDiamond(id) {
+  if(qrScanner){ qrScanner.stop().catch(()=>{}); qrScanner=null; }
+  const d = resolveId(id);
+  // Push hash so the URL becomes a direct deep-link to this diamond
+  const hashId = d ? d.id : encodeURIComponent(id);
+  history.pushState(null, '', '#' + hashId);
+  showPage('loading-page');
+  setTimeout(() => {
+    if(d) renderDetails(d);
+    else renderNotFound(id);
+  }, 1200);
+}
+
+// ── HASH ROUTING: read URL on load + back/forward navigation ─────────────────
+function routeFromHash() {
+  const hash = decodeURIComponent(window.location.hash.slice(1));
+  if(hash) {
+    const d = resolveId(hash);
+    showPage('loading-page');
+    setTimeout(() => {
+      if(d) renderDetails(d);
+      else renderNotFound(hash);
+    }, 900);
+  } else {
+    showPage('home-page');
+  }
+}
+window.addEventListener('popstate', routeFromHash);
+
+// ── SCANNER ────────────────────────────────────────────────────────────────
+function initScanner() {
+  if(qrScanner) return;
+  try {
+    qrScanner = new Html5Qrcode("qr-reader");
+    qrScanner.start(
+      {facingMode:"environment"},
+      {fps:10, qrbox:{width:240,height:240}},
+      txt => { qrScanner.stop(); loadDiamond(txt); },
+      ()=>{}
+    ).catch(()=>{
+      document.getElementById('qr-reader').innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:1px;">Camera unavailable.<br>Use manual entry below.</div>';
+    });
+  } catch(e) {
+    document.getElementById('qr-reader').innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:12px;">Please use manual ID entry.</div>';
+  }
+}
+
+// ── TAB SCROLL ─────────────────────────────────────────────────────────────
+function scrollToSection(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById(id);
+  if(el){ const top = el.getBoundingClientRect().top + window.scrollY - 120; window.scrollTo({top,behavior:'smooth'}); }
+}
+
+// ── RENDER DETAILS ─────────────────────────────────────────────────────────
+function renderDetails(d) {
+  const sbClass = {verified:'sb-verified', pending:'sb-pending', flagged:'sb-flagged'}[d.status];
+  const sbText = {verified:'✓ GeoMark Verified', pending:'⏳ Pending Review', flagged:'⚠ Flagged'}[d.status];
+  const tbClass = {'GM-Gold':'tb-gold', 'GM-Platinum':'tb-platinum', 'GM-Silver':'tb-silver'}[d.tier]||'tb-silver';
+
+  const chainHTML = d.chain.map((n,i) => `
+    <div class="chain-node" id="cn${i}">
+      <div class="chain-time">${n.date}<br>${n.time}</div>
+      <div class="chain-mid">
+        ${i>0?'<div class="chain-vline"></div>':''}
+        <div class="chain-dot d-${n.type}"></div>
+        ${i<d.chain.length-1?'<div class="chain-vline"></div>':''}
+      </div>
+      <div class="chain-body">
+        <div class="c-stage">${n.stage}</div>
+        <div class="c-event">${n.event}</div>
+        <div class="c-tags">
+          <span class="c-tag">📍 <span>${n.location}</span></span>
+          <span class="c-tag">🏢 <span>${n.entity}</span></span>
+          ${n.details.map(x=>`<span class="c-tag">${x.k}: <span>${x.v}</span></span>`).join('')}
+        </div>
+        <div class="c-verified">DiamondNet Verified</div>
+        <div class="c-hash" title="DiamondNet Block Hash">${n.hash}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const childrenHTML = d.children.length ? `
+    <div class="section" id="sec-batches">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/></svg>
+        Polished Output Batches
+      </div>
+      <div class="children-grid">
+        ${d.children.map(c=>`
+          <div class="child-card">
+            <div class="child-id">◆ ${c.id}</div>
+            <div class="child-wt">${c.weight}</div>
+            <div class="child-meta">${c.shape}</div>
+            <div class="child-meta" style="color:${c.status==='Available'?'#2ed573':'var(--gold)'};">${c.status}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : `<div class="section" id="sec-batches"><div class="section-head">Polished Output Batches</div><div style="font-size:12px;color:var(--muted);padding:20px 0;letter-spacing:1px;">No child batches registered yet — processing pending.</div></div>`;
+
+  document.getElementById('details-content').innerHTML = `
+
+    <!-- PASSPORT BAR -->
+    <div id="sec-overview">
+      <div class="passport-bar" style="margin-bottom:24px;">
+        <div>
+          <div class="passport-id">◆ ${d.id}</div>
+          <div class="passport-name">${d.name}</div>
+          <div class="passport-origin">${d.origin} · ${d.type}</div>
+        </div>
+        <div class="passport-right">
+          <span class="status-badge ${sbClass}">${sbText}</span>
+          <span class="tier-badge ${tbClass}">${d.tier} · DiamondNet Registry</span>
+          <button class="page-back" style="margin-bottom:0;" onclick="showHome()">← New Search</button>
+        </div>
+      </div>
+
+      <!-- QUICK STATS ROW -->
+      <div class="info-grid" style="margin-bottom:24px;">
+        <div class="i-card hi">
+          <div class="i-label">Rough Weight</div>
+          <div class="i-val">${d.roughWeight}</div>
+          <div class="i-sub">Pre-processing</div>
+        </div>
+        <div class="i-card hi">
+          <div class="i-label">Polished Weight</div>
+          <div class="i-val">${d.polishedWeight}</div>
+          <div class="i-sub">Yield: ${d.yield}</div>
+        </div>
+        <div class="i-card hi">
+          <div class="i-label">Est. Value</div>
+          <div class="i-val">${d.estimatedValue}</div>
+          <div class="i-sub">Indicative market</div>
+        </div>
+        <div class="i-card">
+          <div class="i-label">Mine Country</div>
+          <div class="i-val" style="font-size:18px;">${d.mineCountry}</div>
+          <div class="i-sub">${d.origin}</div>
+        </div>
+        <div class="i-card">
+          <div class="i-label">Chain Nodes</div>
+          <div class="i-val">${d.chain.length}</div>
+          <div class="i-sub">Verified checkpoints</div>
+        </div>
+        <div class="i-card">
+          <div class="i-label">Grading Lab</div>
+          <div class="i-val" style="font-size:18px;">${d.gradingLab}</div>
+          <div class="i-sub">${d.labCert}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STONE SPECS -->
+    <div class="section" id="sec-specs">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/></svg>
+        Stone Specifications
+      </div>
+      <div class="info-grid">
+        <div class="i-card"><div class="i-label">Shape</div><div class="i-val" style="font-size:18px;">${d.shape}</div></div>
+        <div class="i-card"><div class="i-label">Color Grade</div><div class="i-val">${d.color}</div><div class="i-sub">GIA Scale</div></div>
+        <div class="i-card"><div class="i-label">Clarity</div><div class="i-val">${d.clarity}</div><div class="i-sub">Inclusion grade</div></div>
+        <div class="i-card"><div class="i-label">Cut Grade</div><div class="i-val" style="font-size:18px;">${d.cut}</div></div>
+        <div class="i-card"><div class="i-label">Polish</div><div class="i-val" style="font-size:18px;">${d.polish}</div></div>
+        <div class="i-card"><div class="i-label">Symmetry</div><div class="i-val" style="font-size:18px;">${d.symmetry}</div></div>
+        <div class="i-card"><div class="i-label">Fluorescence</div><div class="i-val" style="font-size:18px;">${d.fluorescence}</div></div>
+        <div class="i-card"><div class="i-label">Dimensions</div><div class="i-val" style="font-size:16px;">${d.dimensions}</div></div>
+      </div>
+    </div>
+
+    <!-- KP CERTIFICATE -->
+    <div class="section" id="sec-cert">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+        GeoMark Certification & Provenance
+      </div>
+      <div class="cert-box">
+        <div class="cert-grid">
+          <div style="grid-column:span 2">
+            <div class="cf-label">GeoMark ID</div>
+            <div class="cert-num">${d.geoMarkId}</div>
+          </div>
+          <div>
+            <div class="cf-label">Mine License</div>
+            <div class="cf-val">${d.mineLicense}</div>
+          </div>
+          <div>
+            <div class="cf-label">Country of Origin</div>
+            <div class="cf-val">${d.mineCountry}</div>
+          </div>
+          <div>
+            <div class="cf-label">Export Date</div>
+            <div class="cf-val">${d.exportDate}</div>
+          </div>
+          <div>
+            <div class="cf-label">Import Date</div>
+            <div class="cf-val">${d.importDate}</div>
+          </div>
+          <div>
+            <div class="cf-label">Polish Date</div>
+            <div class="cf-val">${d.polishDate}</div>
+          </div>
+          <div>
+            <div class="cf-label">Grading Certificate</div>
+            <div class="cf-val">${d.labCert}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESG -->
+    <div class="section" id="sec-esg">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        ESG Compliance Score
+      </div>
+      <div style="max-width:520px;">
+        <div class="esg-row">
+          <div class="esg-lbl">Environmental</div>
+          <div class="esg-track"><div class="esg-fill esg-e" id="esg-e" style="width:0%"></div></div>
+          <div class="esg-score">${d.esg.e}/100</div>
+        </div>
+        <div class="esg-row">
+          <div class="esg-lbl">Social</div>
+          <div class="esg-track"><div class="esg-fill esg-s" id="esg-s" style="width:0%"></div></div>
+          <div class="esg-score">${d.esg.s}/100</div>
+        </div>
+        <div class="esg-row">
+          <div class="esg-lbl">Governance</div>
+          <div class="esg-track"><div class="esg-fill esg-g" id="esg-g" style="width:0%"></div></div>
+          <div class="esg-score">${d.esg.g}/100</div>
+        </div>
+        <div style="margin-top:14px;font-size:10px;color:var(--muted);letter-spacing:1px;line-height:1.8;">
+          Evaluated per GeoMark-2026 ESG Annex · Tiered Compliance Framework · ${d.tier}
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAIN OF CUSTODY -->
+    <div class="section" id="sec-chain">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        Chain of Custody — DiamondNet Ledger
+      </div>
+      <div class="chain">${chainHTML}</div>
+    </div>
+
+    ${childrenHTML}
+
+    <!-- CONSUMER QR -->
+    <div class="section" id="sec-verify">
+      <div class="section-head">
+        <svg class="sh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M16 16h5v5M16 16v5M21 16v5"/></svg>
+        Consumer Verification QR
+      </div>
+      <div class="qr-section">
+        <div class="qr-frame" id="consumer-qr"></div>
+        <div class="qr-info">
+          <h3>Share This Diamond's Story</h3>
+          <p>This QR code links directly to the full verified provenance record on the KP DiamondNet Registry. Scan to share with buyers, retailers, or consumers for instant ethical sourcing confirmation.</p>
+          <div class="qr-meta">
+            ID · ${d.id}<br>
+            Status · ${sbText}<br>
+            Verified · ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  showPage('details-page');
+
+  // Animate ESG bars
+  setTimeout(() => {
+    document.getElementById('esg-e').style.width = d.esg.e+'%';
+    document.getElementById('esg-s').style.width = d.esg.s+'%';
+    document.getElementById('esg-g').style.width = d.esg.g+'%';
+  }, 200);
+
+  // Animate chain nodes
+  setTimeout(() => {
+    d.chain.forEach((_,i) => {
+      setTimeout(() => {
+        const el = document.getElementById('cn'+i);
+        if(el) el.classList.add('vis');
+      }, i*110);
+    });
+  }, 300);
+
+  // Draw QR
+  drawQR(d.id);
+}
+
+function renderNotFound(id) {
+  document.getElementById('details-content').innerHTML = `
+    <div class="not-found">
+      <div class="nf-icon">◇</div>
+      <div class="nf-title">Record Not Found</div>
+      <div class="nf-id">${id}</div>
+      <div class="nf-desc">No DiamondNet entry found for this ID. The stone may not be registered, or the ID may be incorrect. Please verify with your supplier or contact GJEPC.</div>
+      <button class="page-back" style="margin:30px auto 0;display:flex;" onclick="showHome()">← Try Another ID</button>
+    </div>
+  `;
+  showPage('details-page');
+}
+
+function drawQR(diamondId) {
+  const el = document.getElementById('consumer-qr');
+  if(!el) return;
+  el.innerHTML = ''; // clear previous
+  // Build a deep-link URL: current page URL + #DIAMOND_ID
+  // On diamondtrace.github.io this becomes a real scannable deep-link
+  const base = window.location.href.split('#')[0];
+  const url = base + '#' + encodeURIComponent(diamondId);
+  new QRCode(el, {
+    text: url,
+    width: 130,
+    height: 130,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+routeFromHash();
+</script>
+</body>
+</html>
